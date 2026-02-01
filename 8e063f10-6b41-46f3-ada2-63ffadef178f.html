@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <base target="_self">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مختبر الجينات - لعبة تعليمية</title>
+    <meta name="description" content="لعبة تفاعلية لتعلم هندسة الجينات وتكنولوجيا الحيوية وعلم الوراثة">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3B82F6",
+                        secondary: "#10B981",
+                        accent: "#F59E0B"
+                    },
+                    fontFamily: {
+                        'sans': ['Tajawal', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Tajawal', sans-serif;
+        }
+        .game-card {
+            transition: all 0.3s ease;
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .timer {
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 text-gray-800">
+    <header class="bg-gradient-to-r from-primary to-secondary text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold">مختبر الجينات</h1>
+                <div class="flex items-center space-x-4 space-x-reverse">
+                    <span id="score" class="bg-white text-primary px-4 py-2 rounded-full font-bold">النقاط: 0</span>
+                    <button id="soundToggle" class="text-white text-2xl">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Game Selection Screen -->
+        <section id="gameSelection" class="text-center">
+            <h2 class="text-2xl font-bold mb-8 text-primary">اختر نوع التحدي</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Game Card 1 -->
+                <div class="game-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer" onclick="startGame('dna')">
+                    <img src="https://picsum.photos/400/300?random=101" alt="DNA Structure" class="w-full h-48 object-cover" loading="lazy">
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2">تحدي تركيب DNA</h3>
+                        <p class="text-gray-600 mb-4">قم بتركيب سلسلة DNA المطابقة في أسرع وقت</p>
+                        <span class="inline-block bg-primary text-white px-4 py-1 rounded-full text-sm">وقت محدود</span>
+                    </div>
+                </div>
+                
+                <!-- Game Card 2 -->
+                <div class="game-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer" onclick="startGame('quiz')">
+                    <img src="https://picsum.photos/400/300?random=102" alt="Biology Quiz" class="w-full h-48 object-cover" loading="lazy">
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2">اختبار المعلومات</h3>
+                        <p class="text-gray-600 mb-4">أجب على أسئلة في علم الوراثة والأحياء</p>
+                        <span class="inline-block bg-secondary text-white px-4 py-1 rounded-full text-sm">20 سؤال</span>
+                    </div>
+                </div>
+                
+                <!-- Game Card 3 -->
+                <div class="game-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer" onclick="startGame('microscope')">
+                    <img src="https://picsum.photos/400/300?random=103" alt="Microscope" class="w-full h-48 object-cover" loading="lazy">
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2">تحدي المجهر</h3>
+                        <p class="text-gray-600 mb-4">حدد أنواع الخلايا والكائنات الدقيقة</p>
+                        <span class="inline-block bg-accent text-white px-4 py-1 rounded-full text-sm">مستويات متعددة</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DNA Game Screen (Hidden by default) -->
+        <section id="dnaGame" class="hidden text-center">
+            <h2 class="text-2xl font-bold mb-6 text-primary">تحدي تركيب DNA</h2>
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-lg font-bold">الوقت المتبقي: <span id="timer" class="timer text-red-500">60</span> ثانية</span>
+                    <span class="text-lg font-bold">النقاط: <span id="dnaScore">0</span></span>
+                </div>
+                <div class="mb-6">
+                    <p class="text-xl mb-4">السلسلة المستهدفة:</p>
+                    <div id="targetDNA" class="bg-gray-100 p-4 rounded-lg text-2xl font-mono mb-4"></div>
+                </div>
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <button class="nucleotide-btn bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg text-xl" data-value="A">A</button>
+                    <button class="nucleotide-btn bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg text-xl" data-value="T">T</button>
+                    <button class="nucleotide-btn bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg text-xl" data-value="C">C</button>
+                    <button class="nucleotide-btn bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg text-xl" data-value="G">G</button>
+                </div>
+                <div class="mb-6">
+                    <p class="text-xl mb-2">سلسلتك:</p>
+                    <div id="userDNA" class="bg-gray-100 p-4 rounded-lg text-2xl font-mono min-h-16"></div>
+                </div>
+                <div class="flex justify-center space-x-4 space-x-reverse">
+                    <button id="checkDNA" class="bg-primary hover:bg-blue-700 text-white px-6 py-2 rounded-lg">تحقق</button>
+                    <button id="resetDNA" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">إعادة</button>
+                    <button onclick="backToMenu()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg">العودة</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quiz Game Screen (Hidden by default) -->
+        <section id="quizGame" class="hidden">
+            <h2 class="text-2xl font-bold mb-6 text-primary text-center">اختبار المعلومات</h2>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-lg font-bold">السؤال <span id="currentQuestion">1</span> من 20</span>
+                    <span class="text-lg font-bold">النقاط: <span id="quizScore">0</span></span>
+                </div>
+                <div id="questionContainer" class="mb-6">
+                    <p id="questionText" class="text-xl mb-6"></p>
+                    <div id="optionsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+                <div id="resultContainer" class="hidden text-center py-8">
+                    <h3 class="text-2xl font-bold mb-4">نتيجة الاختبار</h3>
+                    <p id="finalScore" class="text-xl mb-6"></p>
+                    <button onclick="backToMenu()" class="bg-primary hover:bg-blue-700 text-white px-6 py-2 rounded-lg">العودة</button>
+                </div>
+                <div class="flex justify-center">
+                    <button id="nextQuestion" class="bg-primary hover:bg-blue-700 text-white px-6 py-2 rounded-lg hidden">السؤال التالي</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Microscope Game Screen (Hidden by default) -->
+        <section id="microscopeGame" class="hidden text-center">
+            <h2 class="text-2xl font-bold mb-6 text-primary">تحدي المجهر</h2>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-lg font-bold">المستوى: <span id="currentLevel">1</span></span>
+                    <span class="text-lg font-bold">النقاط: <span id="microscopeScore">0</span></span>
+                </div>
+                <div class="mb-6">
+                    <p id="microscopePrompt" class="text-xl mb-4">ما نوع هذه الخلية؟</p>
+                    <img id="cellImage" src="" alt="خلية مجهرية" class="mx-auto rounded-lg shadow-md mb-4 max-h-64" loading="lazy">
+                </div>
+                <div id="cellOptions" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
+                <div class="flex justify-center space-x-4 space-x-reverse">
+                    <button onclick="backToMenu()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg">العودة</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-100 py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-gray-600">© 2023 مختبر الجينات - لعبة تعليمية في هندسة الجينات وتكنولوجيا الحيوية</p>
+            <div class="flex justify-center space-x-4 space-x-reverse mt-4">
+                <a href="#" class="text-primary hover:text-blue-700"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" class="text-primary hover:text-blue-700"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-primary hover:text-blue-700"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Game Data
+        const gameData = {
+            score: 0,
+            soundOn: true,
+            currentGame: null,
+            
+            // DNA Game Data
+            dna: {
+                sequences: [
+                    "ATCGATCGAT",
+                    "GCTAGCTAGC",
+                    "TTAGCATGCC",
+                    "CGGTTAACGT",
+                    "AACCTTGGCG"
+                ],
+                currentSequence: "",
+                userSequence: "",
+                score: 0,
+                timeLeft: 60,
+                timer: null
+            },
+            
+            // Quiz Game Data
+            quiz: {
+                questions: [
+                    {
+                        question: "ما هي المادة الوراثية في الخلية؟",
+                        options: ["DNA", "RNA", "البروتين", "الكربوهيدرات"],
+                        answer: 0
+                    },
+                    {
+                        question: "كم عدد الكروموسومات في الإنسان؟",
+                        options: ["23", "46", "64", "32"],
+                        answer: 1
+                    },
+                    {
+                        question: "أي من هذه التقنيات تستخدم في هندسة الجينات؟",
+                        options: ["PCR", "MRI", "X-ray", "الموجات فوق الصوتية"],
+                        answer: 0
+                    },
+                    {
+                        question: "ما هي الخلايا التي يمكنها التمايز إلى أنواع مختلفة من الخلايا؟",
+                        options: ["الخلايا الجذعية", "الخلايا العصبية", "خلايا الدم الحمراء", "الخلايا العضلية"],
+                        answer: 0
+                    },
+                    {
+                        question: "ما هو الإنزيم المستخدم في تفاعل PCR؟",
+                        options: ["بوليميراز DNA", "الليبيز", "الأميليز", "البروتياز"],
+                        answer: 0
+                    }
+                ],
+                currentQuestion: 0,
+                score: 0,
+                userAnswers: []
+            },
+            
+            // Microscope Game Data
+            microscope: {
+                levels: [
+                    {
+                        image: "https://picsum.photos/300/200?random=201",
+                        question: "ما نوع هذه الخلية؟",
+                        options: ["خلية نباتية", "خلية حيوانية", "بكتيريا", "فيروس"],
+                        answer: 0
+                    },
+                    {
+                        image: "https://picsum.photos/300/200?random=202",
+                        question: "ما هذا الكائن الدقيق؟",
+                        options: ["أميبا", "باراميسيوم", "يوجلينا", "فولفوكس"],
+                        answer: 1
+                    },
+                    {
+                        image: "https://picsum.photos/300/200?random=203",
+                        question: "ما نوع هذه البكتيريا؟",
+                        options: ["عصوية", "كروية", "لولبية", "ضمة"],
+                        answer: 2
+                    }
+                ],
+                currentLevel: 0,
+                score: 0
+            }
+        };
+
+        // DOM Elements
+        const elements = {
+            gameSelection: document.getElementById('gameSelection'),
+            dnaGame: document.getElementById('dnaGame'),
+            quizGame: document.getElementById('quizGame'),
+            microscopeGame: document.getElementById('microscopeGame'),
+            scoreElement: document.getElementById('score'),
+            soundToggle: document.getElementById('soundToggle'),
+            
+            // DNA Game Elements
+            targetDNA: document.getElementById('targetDNA'),
+            userDNA: document.getElementById('userDNA'),
+            dnaScore: document.getElementById('dnaScore'),
+            timer: document.getElementById('timer'),
+            checkDNA: document.getElementById('checkDNA'),
+            resetDNA: document.getElementById('resetDNA'),
+            
+            // Quiz Game Elements
+            questionText: document.getElementById('questionText'),
+            optionsContainer: document.getElementById('optionsContainer'),
+            currentQuestion: document.getElementById('currentQuestion'),
+            quizScore: document.getElementById('quizScore'),
+            nextQuestion: document.getElementById('nextQuestion'),
+            resultContainer: document.getElementById('resultContainer'),
+            finalScore: document.getElementById('finalScore'),
+            
+            // Microscope Game Elements
+            cellImage: document.getElementById('cellImage'),
+            microscopePrompt: document.getElementById('microscopePrompt'),
+            cellOptions: document.getElementById('cellOptions'),
+            currentLevel: document.getElementById('currentLevel'),
+            microscopeScore: document.getElementById('microscopeScore')
+        };
+
+        // Initialize Game
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sound toggle
+            elements.soundToggle.addEventListener('click', toggleSound);
+            
+            // DNA Game Event Listeners
+            document.querySelectorAll('.nucleotide-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (gameData.currentGame === 'dna') {
+                        addNucleotide(this.dataset.value);
+                    }
+                });
+            });
+            
+            elements.checkDNA.addEventListener('click', checkDNASequence);
+            elements.resetDNA.addEventListener('click', resetDNASequence);
+            
+            // Quiz Game Event Listeners
+            elements.nextQuestion.addEventListener('click', loadNextQuestion);
+        });
+
+        // Game Functions
+        function startGame(gameType) {
+            gameData.currentGame = gameType;
+            elements.gameSelection.classList.add('hidden');
+            
+            switch(gameType) {
+                case 'dna':
+                    startDNAGame();
+                    break;
+                case 'quiz':
+                    startQuizGame();
+                    break;
+                case 'microscope':
+                    startMicroscopeGame();
+                    break;
+            }
+        }
+
+        function backToMenu() {
+            // Stop any running timers
+            if (gameData.dna.timer) {
+                clearInterval(gameData.dna.timer);
+            }
+            
+            // Hide all game screens
+            elements.dnaGame.classList.add('hidden');
+            elements.quizGame.classList.add('hidden');
+            elements.microscopeGame.classList.add('hidden');
+            
+            // Show game selection
+            elements.gameSelection.classList.remove('hidden');
+            
+            // Update main score if any game was completed
+            updateMainScore();
+        }
+
+        function updateMainScore() {
+            elements.scoreElement.textContent = `النقاط: ${gameData.score}`;
+        }
+
+        function toggleSound() {
+            gameData.soundOn = !gameData.soundOn;
+            elements.soundToggle.innerHTML = gameData.soundOn ? 
+                '<i class="fas fa-volume-up"></i>' : 
+                '<i class="fas fa-volume-mute"></i>';
+        }
+
+        // DNA Game Functions
+        function startDNAGame() {
+            // Reset game data
+            gameData.dna.currentSequence = gameData.dna.sequences[
+                Math.floor(Math.random() * gameData.dna.sequences.length)
+            ];
+            gameData.dna.userSequence = "";
+            gameData.dna.score = 0;
+            gameData.dna.timeLeft = 60;
+            
+            // Update UI
+            elements.targetDNA.textContent = gameData.dna.currentSequence;
+            elements.userDNA.textContent = "";
+            elements.dnaScore.textContent = "0";
+            elements.timer.textContent = "60";
+            
+            // Start timer
+            gameData.dna.timer = setInterval(function() {
+                gameData.dna.timeLeft--;
+                elements.timer.textContent = gameData.dna.timeLeft;
+                
+                if (gameData.dna.timeLeft <= 0) {
+                    clearInterval(gameData.dna.timer);
+                    alert("انتهى الوقت! لقد سجلت " + gameData.dna.score + " نقاط");
+                    backToMenu();
+                }
+            }, 1000);
+            
+            // Show game screen
+            elements.dnaGame.classList.remove('hidden');
+        }
+
+        function addNucleotide(nucleotide) {
+            gameData.dna.userSequence += nucleotide;
+            elements.userDNA.textContent = gameData.dna.userSequence;
+        }
+
+        function resetDNASequence() {
+            gameData.dna.userSequence = "";
+            elements.userDNA.textContent = "";
+        }
+
+        function checkDNASequence() {
+            if (gameData.dna.userSequence === gameData.dna.currentSequence) {
+                // Correct sequence
+                if (gameData.soundOn) {
+                    // Play success sound (would be implemented with audio API in real app)
+                }
+                
+                gameData.dna.score += 10;
+                gameData.dna.timeLeft += 5; // Bonus time
+                elements.dnaScore.textContent = gameData.dna.score;
+                elements.timer.textContent = gameData.dna.timeLeft;
+                
+                // Get new sequence
+                gameData.dna.currentSequence = gameData.dna.sequences[
+                    Math.floor(Math.random() * gameData.dna.sequences.length)
+                ];
+                gameData.dna.userSequence = "";
+                
+                // Update UI
+                elements.targetDNA.textContent = gameData.dna.currentSequence;
+                elements.userDNA.textContent = "";
+            } else {
+                // Incorrect sequence
+                if (gameData.soundOn) {
+                    // Play error sound
+                }
+                alert("التسلسل غير صحيح! حاول مرة أخرى");
+            }
+        }
+
+        // Quiz Game Functions
+        function startQuizGame() {
+            gameData.quiz.currentQuestion = 0;
+            gameData.quiz.score = 0;
+            gameData.quiz.userAnswers = [];
+            
+            // Hide result container if shown
+            elements.resultContainer.classList.add('hidden');
+            
+            // Load first question
+            loadQuestion(gameData.quiz.currentQuestion);
+            
+            // Show game screen
+            elements.quizGame.classList.remove('hidden');
+        }
+
+        function loadQuestion(index) {
+            const question = gameData.quiz.questions[index];
+            
+            // Update UI
+            elements.questionText.textContent = question.question;
+            elements.currentQuestion.textContent = index + 1;
+            elements.quizScore.textContent = gameData.quiz.score;
+            
+            // Clear previous options
+            elements.optionsContainer.innerHTML = "";
+            
+            // Add new options
+            question.options.forEach((option, i) => {
+                const optionBtn = document.createElement('button');
+                optionBtn.className = 'bg-gray-100 hover:bg-gray-200 p-4 rounded-lg text-lg text-right';
+                optionBtn.textContent = option;
+                optionBtn.dataset.index = i;
+                optionBtn.addEventListener('click', function() {
+                    checkAnswer(parseInt(this.dataset.index));
+                });
+                elements.optionsContainer.appendChild(optionBtn);
+            });
+            
+            // Hide next question button initially
+            elements.nextQuestion.classList.add('hidden');
+        }
+
+        function checkAnswer(selectedIndex) {
+            const currentQuestion = gameData.quiz.questions[gameData.quiz.currentQuestion];
+            const isCorrect = selectedIndex === currentQuestion.answer;
+            
+            // Store user answer
+            gameData.quiz.userAnswers.push({
+                question: currentQuestion.question,
+                userAnswer: currentQuestion.options[selectedIndex],
+                correctAnswer: currentQuestion.options[currentQuestion.answer],
+                isCorrect: isCorrect
+            });
+            
+            // Update score if correct
+            if (isCorrect) {
+                gameData.quiz.score += 5;
+                elements.quizScore.textContent = gameData.quiz.score;
+                
+                if (gameData.soundOn) {
+                    // Play correct answer sound
+                }
+            } else {
+                if (gameData.soundOn) {
+                    // Play wrong answer sound
+                }
+            }
+            
+            // Show next question button
+            elements.nextQuestion.classList.remove('hidden');
+            
+            // Disable all options
+            document.querySelectorAll('#optionsContainer button').forEach(btn => {
+                btn.disabled = true;
+                if (parseInt(btn.dataset.index) === currentQuestion.answer) {
+                    btn.classList.add('bg-green-100', 'border-2', 'border-green-500');
+                } else if (parseInt(btn.dataset.index) === selectedIndex && !isCorrect) {
+                    btn.classList.add('bg-red-100', 'border-2', 'border-red-500');
+                }
+            });
+        }
+
+        function loadNextQuestion() {
+            gameData.quiz.currentQuestion++;
+            
+            if (gameData.quiz.currentQuestion < gameData.quiz.questions.length) {
+                loadQuestion(gameData.quiz.currentQuestion);
+            } else {
+                // Quiz completed
+                showQuizResults();
+            }
+        }
+
+        function showQuizResults() {
+            // Hide question container
+            document.getElementById('questionContainer').classList.add('hidden');
+            
+            // Calculate percentage
+            const percentage = Math.round((gameData.quiz.score / (gameData.quiz.questions.length * 5)) * 100);
+            
+            // Show results
+            elements.finalScore.textContent = `لقد حصلت على ${gameData.quiz.score} من ${gameData.quiz.questions.length * 5} نقطة (${percentage}%)`;
+            
+            // Add to main score
+            gameData.score += gameData.quiz.score;
+            updateMainScore();
+            
+            // Show result container
+            elements.resultContainer.classList.remove('hidden');
+        }
+
+        // Microscope Game Functions
+        function startMicroscopeGame() {
+            gameData.microscope.currentLevel = 0;
+            gameData.microscope.score = 0;
+            
+            // Load first level
+            loadMicroscopeLevel(gameData.microscope.currentLevel);
+            
+            // Show game screen
+            elements.microscopeGame.classList.remove('hidden');
+        }
+
+        function loadMicroscopeLevel(levelIndex) {
+            const level = gameData.microscope.levels[levelIndex];
+            
+            // Update UI
+            elements.cellImage.src = level.image;
+            elements.microscopePrompt.textContent = level.question;
+            elements.currentLevel.textContent = levelIndex + 1;
+            elements.microscopeScore.textContent = gameData.microscope.score;
+            
+            // Clear previous options
+            elements.cellOptions.innerHTML = "";
+            
+            // Add new options
+            level.options.forEach((option, i) => {
+                const optionBtn = document.createElement('button');
+                optionBtn.className = 'bg-gray-100 hover:bg-gray-200 p-4 rounded-lg text-lg';
+                optionBtn.textContent = option;
+                optionBtn.dataset.index = i;
+                optionBtn.addEventListener('click', function() {
+                    checkMicroscopeAnswer(parseInt(this.dataset.index));
+                });
+                elements.cellOptions.appendChild(optionBtn);
+            });
+        }
+
+        function checkMicroscopeAnswer(selectedIndex) {
+            const currentLevel = gameData.microscope.levels[gameData.microscope.currentLevel];
+            const isCorrect = selectedIndex === currentLevel.answer;
+            
+            if (isCorrect) {
+                gameData.microscope.score += 10;
+                elements.microscopeScore.textContent = gameData.microscope.score;
+                
+                if (gameData.soundOn) {
+                    // Play correct answer sound
+                }
+                
+                // Move to next level or end game
+                gameData.microscope.currentLevel++;
+                
+                if (gameData.microscope.currentLevel < gameData.microscope.levels.length) {
+                    loadMicroscopeLevel(gameData.microscope.currentLevel);
+                } else {
+                    // Game completed
+                    alert(`تهانينا! لقد أكملت جميع المستويات وحصلت على ${gameData.microscope.score} نقطة`);
+                    
+                    // Add to main score
+                    gameData.score += gameData.microscope.score;
+                    updateMainScore();
+                    
+                    backToMenu();
+                }
+            } else {
+                if (gameData.soundOn) {
+                    // Play wrong answer sound
+                }
+                alert("إجابة خاطئة! حاول مرة أخرى");
+            }
+        }
+    </script>
+</body>
+</html>
